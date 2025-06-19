@@ -1,0 +1,32 @@
+[
+    {
+        "Title": "Bug Fix: Login Issue",
+        "Body": "Fixed authentication problem that was preventing users from logging in during peak hours.",
+        "Category": "Bug Fix",
+        "Date": "2024-01-15"
+    },
+    {
+        "Title": "New Feature: Dark Mode",
+        "Body": "Added dark mode theme option for better user experience in low-light environments.",
+        "Category": "New Feature",
+        "Date": "2024-02-20"
+    },
+    {
+        "Title": "Enhancement: Performance",
+        "Body": "Improved page load times by 40% through optimization of database queries.",
+        "Category": "Enhancement",
+        "Date": "2024-04-10"
+    },
+    {
+        "Title": "Bug Fix: Data Export",
+        "Body": "Resolved issue where exported CSV files were missing column headers.",
+        "Category": "Bug Fix",
+        "Date": "2024-07-05"
+    },
+    {
+        "Title": "New Feature: Analytics Dashboard",
+        "Body": "Implemented comprehensive analytics dashboard with real-time metrics.",
+        "Category": "New Feature",
+        "Date": "2024-10-12"
+    }
+] 
