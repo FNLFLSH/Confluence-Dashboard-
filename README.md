@@ -4,14 +4,14 @@ A Python tool that converts Confluence HTML release reports into beautifully sty
 
 ## Features
 
-✅ **Confluence HTML Parsing**: Automatically extracts release data from Confluence HTML exports  
-✅ **Quarter Grouping**: Groups reports by quarter (Q1-Q4) with most recent year first  
-✅ **Professional Styling**: Elevance blue headers with white text  
-✅ **Wrapped Text**: All report bodies have wrapped text and top alignment  
-✅ **Summary Section**: 📊 Summary table with quarterly and yearly totals  
-✅ **Auto-sizing**: Column widths automatically adjust to content  
-✅ **Date Formatting**: Clean YYYY-MM-DD date display without time  
-✅ **Smart Sorting**: Years sorted descending (2025 → 2024 → 2023...) with quarters grouped by year  
+ **Confluence HTML Parsing**: Automatically extracts release data from Confluence HTML exports  
+**Quarter Grouping**: Groups reports by quarter (Q1-Q4) with most recent year first  
+ **Professional Styling**: Elevance blue headers with white text  
+ **Wrapped Text**: All report bodies have wrapped text and top alignment  
+ **Summary Section**:  Summary table with quarterly and yearly totals  
+**Auto-sizing**: Column widths automatically adjust to content  
+ **Date Formatting**: Clean YYYY-MM-DD date display without time  
+ **Smart Sorting**: Years sorted descending (2025 → 2024 → 2023...) with quarters grouped by year  
 
 ## Project Structure
 
@@ -33,9 +33,9 @@ confluence_report_generator/
 
 ## Installation
 
-1. Clone the repository:
+1. Move to correct Directory 
 ```bash
-git clone https://github.com/FNLFLSH/Confluence_report.git
+
 cd confluence_report_generator
 ```
 
