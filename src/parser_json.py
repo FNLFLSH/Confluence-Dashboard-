@@ -8,63 +8,95 @@ def load_and_parse_json(filepath):
         data = json.load(f)
     return data
 
+def clean_html(raw_html):
+    """Remove HTML tags, entities, and extra whitespace from a string."""
+    if not isinstance(raw_html, str):
+        return ""
+    clean = re.sub(r'<.*?>', '', raw_html)
+    clean = re.sub(r'&[a-zA-Z0-9#]+;', ' ', clean)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    return clean
+
 def parse_confluence_html_simple(html_content):
     """
-    Parse Confluence HTML content using regex patterns.
-    Returns a list of dictionaries with release data.
+    Parse Confluence HTML to extract release items from tables under h3 headers.
     """
     releases = []
-    
-    # Pattern to find release dates and titles
-    h3_pattern = r'<h3[^>]*class="auto-cursor-target"[^>]*>.*?<time datetime="([^"]+)"[^>]*>.*?\|\s*([^<]+)</h3>'
-    
-    # Find all h3 elements with release information
-    h3_matches = re.findall(h3_pattern, html_content, re.DOTALL)
-    
-    for date_str, title in h3_matches:
-        # Find the table content after this h3
-        # Look for table rows with data
-        table_pattern = r'<tr[^>]*>.*?<td[^>]*>([^<]+)</td>.*?<td[^>]*>([^<]+)</td>.*?<td[^>]*>([^<]+)</td>.*?<td[^>]*>([^<]+)</td>'
+    # Split the content by h3 tags to process each section individually
+    content_blocks = re.split(r'(<h3[^>]*>.*?</h3>)', html_content)
+
+    for i in range(1, len(content_blocks), 2):
+        h3_tag = content_blocks[i]
+        following_content = content_blocks[i + 1]
+
+        # Extract overall date and title from the h3 header
+        date_match = re.search(r'<time datetime="([^"]+)"', h3_tag)
+        h3_title_match = re.search(r'\|\s*([^<]+)</h3>', h3_tag)
         
-        # Find the section between this h3 and the next h3
-        section_start = html_content.find(f'<time datetime="{date_str}"')
-        if section_start == -1:
-            continue
-            
-        # Find the next h3 or end of content
-        next_h3 = html_content.find('<h3', section_start + 1)
-        if next_h3 == -1:
-            section_end = len(html_content)
-        else:
-            section_end = next_h3
-            
-        section_content = html_content[section_start:section_end]
-        
-        # Find table rows in this section
-        table_rows = re.findall(table_pattern, section_content, re.DOTALL)
-        
-        for row in table_rows:
-            if len(row) >= 4:
-                release_type = row[0].strip()
-                service = row[1].strip()
-                module_name = row[2].strip()
-                release_notes = row[3].strip()
-                
-                # Clean up HTML entities
-                release_notes = re.sub(r'&[^;]+;', ' ', release_notes)
-                release_notes = re.sub(r'<[^>]+>', ' ', release_notes)
-                release_notes = re.sub(r'\s+', ' ', release_notes).strip()
-                
-                # Categorize based on release type
-                category = categorize_release(release_type)
-                
+        h3_title = clean_html(h3_title_match.group(1)) if h3_title_match else ""
+        h3_date = date_match.group(1) if date_match else ""
+
+        # Intelligently infer the category from the h3 title
+        category = "Other"
+        if 'enhancement' in h3_title.lower() or 'updated' in h3_title.lower(): category = 'Enhancement'
+        if 'new' in h3_title.lower() or 'created' in h3_title.lower(): category = 'New Feature'
+        if 'bug' in h3_title.lower() or 'fix' in h3_title.lower(): category = 'Bug Fix'
+
+        # Find and parse the table within this section
+        table_match = re.search(r'<table[^>]*>(.*?)</table>', following_content, re.DOTALL)
+        if not table_match:
+            # If no table, use the h3 title as a single release item
+            if h3_title:
                 releases.append({
-                    "Title": f"{release_type}: {service}",
-                    "Body": f"Module: {module_name}\n\n{release_notes}",
+                    "Title": h3_title,
+                    "Body": "No details provided in a table format.",
                     "Category": category,
-                    "Date": date_str
+                    "Date": h3_date
                 })
-    
+            continue
+        
+        table_html = table_match.group(1)
+        rows = re.findall(r'<tr[^>]*>(.*?)</tr>', table_html, re.DOTALL)
+        
+        has_items = False
+        for row_html in rows:
+            if '<th' in row_html.lower():  # Skip header rows
+                continue
+
+            cells = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.DOTALL)
+            
+            # User confirmed: 1=Title, 2=Details, 3=Jira/ID, 4=Date
+            if len(cells) >= 4:
+                report_title = clean_html(cells[0])
+                details = clean_html(cells[1])
+                # Column 3 is an ID, we can ignore it for this report
+                item_date = clean_html(cells[3])
+                
+                # Use the date from the table if valid, otherwise fall back to the h3 date
+                try:
+                    datetime.strptime(item_date.split('T')[0], '%Y-%m-%d')
+                    final_date = item_date
+                except (ValueError, TypeError):
+                    final_date = h3_date
+
+                if report_title or details:
+                    releases.append({
+                        "Title": report_title,
+                        "Body": details,
+                        "Category": category,  # Use the category inferred from the h3 title
+                        "Date": final_date
+                    })
+                    has_items = True
+
+        # If the table was empty but there was an h3 title, log the h3 as a release
+        if not has_items and h3_title:
+             releases.append({
+                "Title": h3_title,
+                "Body": "No items found in the table for this release.",
+                "Category": category,
+                "Date": h3_date,
+            })
+            
     return releases
 
 def categorize_release(release_type):
@@ -83,29 +115,18 @@ def categorize_release(release_type):
 def load_and_parse_confluence_data(filepath):
     """
     Load and parse Confluence data file.
-    Handles both simple JSON and Confluence HTML content.
     """
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Try to parse as JSON first
     try:
         data = json.loads(content)
-        # If it's a simple list of dicts, return as is
-        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
-            return data
-    except json.JSONDecodeError:
-        pass
-    
-    # If not simple JSON, try to parse as Confluence HTML
-    try:
-        # Look for the actual content in the JSON structure
-        json_data = json.loads(content)
-        if 'body' in json_data and 'storage' in json_data['body']:
-            html_content = json_data['body']['storage']['value']
+        if 'body' in data and 'storage' in data['body']:
+            html_content = data['body']['storage']['value']
             return parse_confluence_html_simple(html_content)
+        elif isinstance(data, list):
+            return data
     except (json.JSONDecodeError, KeyError):
-        pass
+        return parse_confluence_html_simple(content)
     
-    # If all else fails, try to parse the content directly as HTML
     return parse_confluence_html_simple(content) 

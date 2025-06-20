@@ -28,29 +28,34 @@ def standardize_fields(data):
     return data
 
 def add_quarter_column(data):
-    """Add quarter column based on date."""
+    """Add a year-inclusive quarter column (e.g., '2024 Q1 (Jan–Mar)') and sort data."""
     for item in data:
         try:
-            date_str = item['Date']
-            if isinstance(date_str, str):
-                date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-            else:
-                date_obj = date_str
+            date_str = item.get('Date', '')
+            if not date_str:
+                item['DateObject'] = datetime.max
+                item['Quarter'] = 'Unknown'
+                continue
+
+            date_obj = datetime.fromisoformat(date_str.replace('Z', ''))
             
             month = date_obj.month
             year = date_obj.year
             
             if month <= 3:
-                quarter = f"Q1 {year}"
+                quarter = f"{year} Q1 (Jan–Mar)"
             elif month <= 6:
-                quarter = f"Q2 {year}"
+                quarter = f"{year} Q2 (Apr–Jun)"
             elif month <= 9:
-                quarter = f"Q3 {year}"
+                quarter = f"{year} Q3 (Jul–Sep)"
             else:
-                quarter = f"Q4 {year}"
+                quarter = f"{year} Q4 (Oct–Dec)"
             
             item['Quarter'] = quarter
+            item['DateObject'] = date_obj
         except (ValueError, TypeError):
             item['Quarter'] = 'Unknown'
+            item['DateObject'] = datetime.max
     
+    data.sort(key=lambda x: x.get('DateObject', datetime.max))
     return data 
