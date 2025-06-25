@@ -46,4 +46,4 @@ Thumbs.db
 
 # Project specific
 output/*.xlsx
-*.log 
+*.log output/
