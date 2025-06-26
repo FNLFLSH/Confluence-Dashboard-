@@ -240,7 +240,17 @@ def export_grouped_by_quarter(data, filename):
 
     grand_total = {cat: 0 for cat in all_cats}
     
-    # Summary data
+    # Group quarters by year for yearly totals
+    yearly_data = {}
+    for quarter in quarters:
+        year_match = re.search(r'(\d{4})', quarter)
+        if year_match:
+            year = year_match.group(1)
+            if year not in yearly_data:
+                yearly_data[year] = []
+            yearly_data[year].append(quarter)
+    
+    # Summary data with yearly totals
     for quarter in quarters:
         counts = summary.get(quarter, {})
         q_cell = ws.cell(row=row, column=1, value=quarter)
@@ -253,16 +263,31 @@ def export_grouped_by_quarter(data, filename):
             cell.border = thin_border
             grand_total[cat] += count
         row += 1
-
-    # Yearly totals
-    ws.cell(row=row, column=1, value="Yearly Total").font = total_font
-    ws.cell(row=row, column=1).border = thin_border
-    
-    for idx, cat in enumerate(all_cats, 2):
-        cell = ws.cell(row=row, column=idx, value=grand_total.get(cat, 0))
-        cell.font = total_font
-        cell.alignment = align_center
-        cell.border = thin_border
+        
+        # Check if this is the last quarter of a year and add yearly total
+        year_match = re.search(r'(\d{4})', quarter)
+        if year_match:
+            year = year_match.group(1)
+            year_quarters = yearly_data.get(year, [])
+            if quarter == year_quarters[-1]:  # Last quarter of this year
+                # Calculate yearly total for this year
+                yearly_total = {cat: 0 for cat in all_cats}
+                for q in year_quarters:
+                    q_counts = summary.get(q, {})
+                    for cat in all_cats:
+                        yearly_total[cat] += q_counts.get(cat, 0)
+                
+                # Add yearly total row
+                yearly_total_cell = ws.cell(row=row, column=1, value=f"{year} Total")
+                yearly_total_cell.font = total_font
+                yearly_total_cell.border = thin_border
+                
+                for idx, cat in enumerate(all_cats, 2):
+                    cell = ws.cell(row=row, column=idx, value=yearly_total[cat])
+                    cell.font = total_font
+                    cell.alignment = align_center
+                    cell.border = thin_border
+                row += 1
 
     # --- Auto-size Columns ---
     ws.column_dimensions['A'].width = 35
@@ -274,6 +299,12 @@ def export_grouped_by_quarter(data, filename):
     # Optimize row heights
     for i in range(1, row + 1):
         ws.row_dimensions[i].height = max(15, ws.row_dimensions[i].height or 15)
+
+    # --- Create New Releases Worksheet ---
+    create_new_releases_worksheet(wb, data)
+
+    # --- Create Frequent Changes Worksheet ---
+    create_frequent_changes_worksheet(wb, data)
 
     # Save the workbook
     wb.save(filename)
@@ -508,64 +539,56 @@ def export_frequent_changes_report(data, filename):
     print(f"Frequent changes report generated: {filename}")
     print(f"Frequent changes analysis: {len(frequent_quarter_changes)} quarterly, {len(frequent_year_changes)} yearly")
 
-def create_new_releases_report(data, output_file):
+def create_new_releases_worksheet(wb, data):
     """
-    Create a separate report specifically for new module releases.
-    Only includes Date, Module Name, and Details columns.
+    Create a new releases worksheet in the existing workbook.
     """
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "New Module Releases"
+    ws = wb.create_sheet("New Releases")
     
-    # Remove default sheet
-    if len(wb.sheetnames) > 1:
-        wb.remove(wb['Sheet'])
-    
-    # Filter data to only include new releases
+    # Filter new releases
     new_releases = [item for item in data if (
         item.get("NewRelease", False) or 
         "new release" in (item.get("Body", "") or "").lower() or
         "new release" in (item.get("Title", "") or "").lower()
     )]
     
-    if not new_releases:
-        # If no new releases, create empty report with headers
-        headers = ["Date", "Module Name", "Details"]
-        for col_idx, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_idx, value=header)
-            cell.font = Font(bold=True, size=12)
-            cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            cell.font = Font(bold=True, color="FFFFFF", size=12)
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                               top=Side(style="thin"), bottom=Side(style="thin"))
-        
-        # Set column widths
-        ws.column_dimensions['A'].width = 20
-        ws.column_dimensions['B'].width = 30
-        ws.column_dimensions['C'].width = 60
-        
-        wb.save(output_file)
-        return
-    
     # Sort by date
     new_releases.sort(key=lambda x: x.get("Date", ""))
     
-    # Create headers
+    # --- Pre-define styles ---
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    title_font = Font(bold=True, size=16, color="0033A0")
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_wrap = Alignment(wrap_text=True, vertical="top")
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
+    
+    # --- Title ---
+    ws.merge_cells('A1:C1')
+    title_cell = ws['A1']
+    title_cell.value = "New Module Releases"
+    title_cell.font = title_font
+    title_cell.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[1].height = 30
+    
+    row = 3
+    
+    # --- Headers ---
     headers = ["Date", "Module Name", "Details"]
     for col_idx, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=header)
-        cell.font = Font(bold=True, size=12)
-        cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        cell.font = Font(bold=True, color="FFFFFF", size=12)
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                           top=Side(style="thin"), bottom=Side(style="thin"))
+        cell = ws.cell(row=row, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = align_center
+        cell.border = thin_border
+    row += 1
     
-    # Add data
-    row = 2
+    # --- Data ---
     for release in new_releases:
-        # Date
+        # Format date
         date_val = release.get("Date")
         if isinstance(date_val, str):
             try:
@@ -581,171 +604,188 @@ def create_new_releases_report(data, output_file):
                     pass
         
         if isinstance(date_val, datetime):
-            ws.cell(row=row, column=1, value=date_val.strftime('%Y-%m-%d'))
+            date_val = date_val.strftime('%Y-%m-%d')
         else:
-            ws.cell(row=row, column=1, value=str(date_val) if date_val else "")
+            date_val = str(date_val) if date_val else ""
         
-        # Module Name
+        # Add row data
+        ws.cell(row=row, column=1, value=date_val)
         ws.cell(row=row, column=2, value=release.get("ModuleName", ""))
+        details_cell = ws.cell(row=row, column=3, value=release.get("Body", ""))
+        details_cell.alignment = align_wrap
         
-        # Details
-        ws.cell(row=row, column=3, value=release.get("Body", ""))
-        
-        # Apply styling
+        # Apply borders
         for col in range(1, 4):
             cell = ws.cell(row=row, column=col)
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
-            cell.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                               top=Side(style="thin"), bottom=Side(style="thin"))
+            cell.border = thin_border
         
         row += 1
     
-    # Add summary section
-    summary_row = row + 2
+    # --- Column widths ---
+    ws.column_dimensions['A'].width = 15
+    ws.column_dimensions['B'].width = 40
+    ws.column_dimensions['C'].width = 80
     
-    # Title for summary
-    summary_title = ws.cell(row=summary_row, column=1, value="SUMMARY")
-    summary_title.font = Font(bold=True, size=14)
-    summary_title.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-    summary_title.font = Font(bold=True, color="FFFFFF", size=14)
-    summary_title.alignment = Alignment(horizontal="center", vertical="center")
-    summary_title.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                                 top=Side(style="thin"), bottom=Side(style="thin"))
-    ws.merge_cells(f'A{summary_row}:C{summary_row}')
+    print(f"New releases worksheet created with {len(new_releases)} releases")
+
+def create_frequent_changes_worksheet(wb, data):
+    """
+    Create a frequent changes worksheet in the existing workbook.
+    """
+    ws = wb.create_sheet("Frequent Changes")
     
-    # Total count
-    summary_row += 1
-    total_label = ws.cell(row=summary_row, column=1, value="Total New Releases:")
-    total_label.font = Font(bold=True, size=12)
-    total_count = ws.cell(row=summary_row, column=2, value=len(new_releases))
-    total_count.font = Font(bold=True, size=12)
+    # Analyze frequent changes
+    print("Analyzing modules with frequent changes...")
+    frequent_quarter_changes, frequent_year_changes = analyze_module_changes(data)
     
-    # Quarterly summary
-    summary_row += 2
-    quarter_title = ws.cell(row=summary_row, column=1, value="Quarterly Breakdown")
-    quarter_title.font = Font(bold=True, size=12)
-    quarter_title.fill = PatternFill(start_color="8EAADB", end_color="8EAADB", fill_type="solid")
-    quarter_title.alignment = Alignment(horizontal="center", vertical="center")
-    quarter_title.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                                 top=Side(style="thin"), bottom=Side(style="thin"))
-    ws.merge_cells(f'A{summary_row}:C{summary_row}')
+    # --- Pre-define styles ---
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="0033A0", end_color="0033A0", fill_type="solid")
+    title_font = Font(bold=True, size=16, color="0033A0")
+    subtitle_font = Font(bold=True, size=12, color="0033A0")
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_wrap = Alignment(wrap_text=True, vertical="top")
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
     
-    # Calculate quarterly counts
-    quarter_counts = {}
-    year_counts = {}
+    # --- Title ---
+    ws.merge_cells('A1:D1')
+    title_cell = ws['A1']
+    title_cell.value = "Modules with Frequent Changes"
+    title_cell.font = title_font
+    title_cell.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[1].height = 30
     
-    for release in new_releases:
-        date_val = release.get("Date")
-        if isinstance(date_val, str):
-            try:
-                if date_val.endswith('Z'):
-                    date_val = date_val[:-1]
-                if 'T' in date_val:
-                    date_val = date_val.split('T')[0]
-                date_val = datetime.fromisoformat(date_val)
-            except (ValueError, TypeError):
-                try:
-                    date_val = datetime.strptime(date_val, '%Y-%m-%d')
-                except (ValueError, TypeError):
-                    continue
+    row = 3
+    
+    # --- Description ---
+    ws.merge_cells(f'A{row}:D{row}')
+    desc_cell = ws.cell(row=row, column=1, value="Analysis of modules with 2+ changes per quarter or 3+ changes per year")
+    desc_cell.font = Font(italic=True)
+    row += 2
+    
+    # --- Quarterly Changes Section ---
+    ws.merge_cells(f'A{row}:D{row}')
+    q_title = ws.cell(row=row, column=1, value="📈 Quarterly Analysis (2+ changes per quarter)")
+    q_title.font = subtitle_font
+    row += 1
+    
+    if frequent_quarter_changes:
+        # Headers
+        headers = ["Quarter", "Module Name", "Change Count", "Changes Summary"]
+        for col_idx, header in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = align_center
+            cell.border = thin_border
+        row += 1
         
-        if isinstance(date_val, datetime):
-            year = date_val.year
-            quarter = f"Q{(date_val.month - 1) // 3 + 1}"
-            quarter_key = f"{year} {quarter}"
-            
-            quarter_counts[quarter_key] = quarter_counts.get(quarter_key, 0) + 1
-            year_counts[year] = year_counts.get(year, 0) + 1
-    
-    # Display quarterly counts
-    summary_row += 1
-    quarter_header = ws.cell(row=summary_row, column=1, value="Quarter")
-    quarter_header.font = Font(bold=True, size=11)
-    quarter_header.fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
-    quarter_header.alignment = Alignment(horizontal="center", vertical="center")
-    quarter_header.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                                  top=Side(style="thin"), bottom=Side(style="thin"))
-    
-    count_header = ws.cell(row=summary_row, column=2, value="Count")
-    count_header.font = Font(bold=True, size=11)
-    count_header.fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
-    count_header.alignment = Alignment(horizontal="center", vertical="center")
-    count_header.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                                top=Side(style="thin"), bottom=Side(style="thin"))
-    
-    # Sort quarters chronologically
-    sorted_quarters = sorted(quarter_counts.keys(), key=lambda x: (int(x.split()[0]), x.split()[1]))
-    
-    for quarter in sorted_quarters:
-        summary_row += 1
-        ws.cell(row=summary_row, column=1, value=quarter)
-        ws.cell(row=summary_row, column=2, value=quarter_counts[quarter])
+        # Group by quarter
+        quarter_groups = {}
+        for item in frequent_quarter_changes:
+            quarter = item['period']
+            if quarter not in quarter_groups:
+                quarter_groups[quarter] = []
+            quarter_groups[quarter].append(item)
         
-        # Apply styling
-        for col in range(1, 3):
-            cell = ws.cell(row=summary_row, column=col)
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                               top=Side(style="thin"), bottom=Side(style="thin"))
-    
-    # Yearly summary
-    summary_row += 2
-    year_title = ws.cell(row=summary_row, column=1, value="Yearly Breakdown")
-    year_title.font = Font(bold=True, size=12)
-    year_title.fill = PatternFill(start_color="8EAADB", end_color="8EAADB", fill_type="solid")
-    year_title.alignment = Alignment(horizontal="center", vertical="center")
-    year_title.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                              top=Side(style="thin"), bottom=Side(style="thin"))
-    ws.merge_cells(f'A{summary_row}:C{summary_row}')
-    
-    summary_row += 1
-    year_header = ws.cell(row=summary_row, column=1, value="Year")
-    year_header.font = Font(bold=True, size=11)
-    year_header.fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
-    year_header.alignment = Alignment(horizontal="center", vertical="center")
-    year_header.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                               top=Side(style="thin"), bottom=Side(style="thin"))
-    
-    year_count_header = ws.cell(row=summary_row, column=2, value="Count")
-    year_count_header.font = Font(bold=True, size=11)
-    year_count_header.fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
-    year_count_header.alignment = Alignment(horizontal="center", vertical="center")
-    year_count_header.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                                     top=Side(style="thin"), bottom=Side(style="thin"))
-    
-    # Sort years chronologically
-    sorted_years = sorted(year_counts.keys())
-    
-    for year in sorted_years:
-        summary_row += 1
-        ws.cell(row=summary_row, column=1, value=year)
-        ws.cell(row=summary_row, column=2, value=year_counts[year])
+        sorted_quarters = sorted(quarter_groups.keys(), key=get_quarter_sort_key)
         
-        # Apply styling
-        for col in range(1, 3):
-            cell = ws.cell(row=summary_row, column=col)
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = Border(left=Side(style="thin"), right=Side(style="thin"), 
-                               top=Side(style="thin"), bottom=Side(style="thin"))
+        for quarter in sorted_quarters:
+            for item in quarter_groups[quarter]:
+                # Create summary text
+                categories = {}
+                for change in item['changes']:
+                    cat = change['category']
+                    categories[cat] = categories.get(cat, 0) + 1
+                
+                summary_parts = []
+                for cat, count in categories.items():
+                    summary_parts.append(f"{cat}: {count}")
+                summary_text = "; ".join(summary_parts)
+                
+                ws.cell(row=row, column=1, value=quarter)
+                ws.cell(row=row, column=2, value=item['module_name'])
+                ws.cell(row=row, column=3, value=item['change_count'])
+                summary_cell = ws.cell(row=row, column=4, value=summary_text)
+                summary_cell.alignment = align_wrap
+                
+                # Apply borders
+                for col in range(1, 5):
+                    cell = ws.cell(row=row, column=col)
+                    cell.border = thin_border
+                row += 1
+    else:
+        ws.merge_cells(f'A{row}:D{row}')
+        no_q_data = ws.cell(row=row, column=1, value="No modules found with 2+ changes per quarter")
+        no_q_data.font = Font(italic=True, color="008000")
+        row += 1
     
-    # Set column widths
+    row += 2
+    
+    # --- Yearly Changes Section ---
+    ws.merge_cells(f'A{row}:D{row}')
+    y_title = ws.cell(row=row, column=1, value="📊 Yearly Analysis (3+ changes per year)")
+    y_title.font = subtitle_font
+    row += 1
+    
+    if frequent_year_changes:
+        # Headers
+        headers = ["Year", "Module Name", "Change Count", "Changes Summary"]
+        for col_idx, header in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = align_center
+            cell.border = thin_border
+        row += 1
+        
+        # Group by year
+        year_groups = {}
+        for item in frequent_year_changes:
+            year = item['period']
+            if year not in year_groups:
+                year_groups[year] = []
+            year_groups[year].append(item)
+        
+        sorted_years = sorted(year_groups.keys(), reverse=True)
+        
+        for year in sorted_years:
+            for item in year_groups[year]:
+                # Create summary text
+                categories = {}
+                for change in item['changes']:
+                    cat = change['category']
+                    categories[cat] = categories.get(cat, 0) + 1
+                
+                summary_parts = []
+                for cat, count in categories.items():
+                    summary_parts.append(f"{cat}: {count}")
+                summary_text = "; ".join(summary_parts)
+                
+                ws.cell(row=row, column=1, value=year)
+                ws.cell(row=row, column=2, value=item['module_name'])
+                ws.cell(row=row, column=3, value=item['change_count'])
+                summary_cell = ws.cell(row=row, column=4, value=summary_text)
+                summary_cell.alignment = align_wrap
+                
+                # Apply borders
+                for col in range(1, 5):
+                    cell = ws.cell(row=row, column=col)
+                    cell.border = thin_border
+                row += 1
+    else:
+        ws.merge_cells(f'A{row}:D{row}')
+        no_y_data = ws.cell(row=row, column=1, value="No modules found with 3+ changes per year")
+        no_y_data.font = Font(italic=True, color="008000")
+        row += 1
+    
+    # --- Column widths ---
     ws.column_dimensions['A'].width = 20
-    ws.column_dimensions['B'].width = 30
-    ws.column_dimensions['C'].width = 60
+    ws.column_dimensions['B'].width = 40
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 60
     
-    # Auto-adjust row heights
-    for row in ws.iter_rows():
-        max_height = 0
-        for cell in row:
-            if cell.value:
-                lines = str(cell.value).count('\n') + 1
-                height = min(max(lines * 15, 20), 100)
-                max_height = max(max_height, height)
-        if max_height > 0:
-            ws.row_dimensions[cell.row].height = max_height
-    
-    wb.save(output_file)
-    print(f"New releases report generated: {output_file}")
-    print(f"Total new releases found: {len(new_releases)}")
-    print(f"Quarters with new releases: {len(quarter_counts)}")
-    print(f"Years with new releases: {len(year_counts)}") 
+    print(f"Frequent changes worksheet created: {len(frequent_quarter_changes)} quarterly, {len(frequent_year_changes)} yearly") 
