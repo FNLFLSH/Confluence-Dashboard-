@@ -1,176 +1,196 @@
-# Confluence Report Generator
+# 🚀 Elevance Confluence Report Dashboard
 
-A Python tool that converts Confluence HTML release reports into beautifully styled Excel sheets, organized by quarter with summary statistics. Automatically parses complex Confluence HTML content and extracts structured release data.
+A modern, interactive web dashboard for visualizing and analyzing Confluence release reports with Elevance branding.
 
-## Features
+## ✨ Features
 
- **Confluence HTML Parsing**: Automatically extracts release data from Confluence HTML exports  
-**Quarter Grouping**: Groups reports by quarter (Q1-Q4) with most recent year first  
- **Professional Styling**: Elevance blue headers with white text  
- **Wrapped Text**: All report bodies have wrapped text and top alignment  
- **Summary Section**:  Summary table with quarterly and yearly totals  
-**Auto-sizing**: Column widths automatically adjust to content  
- **Date Formatting**: Clean YYYY-MM-DD date display without time  
- **Smart Sorting**: Years sorted descending (2025 → 2024 → 2023...) with quarters grouped by year  
+### 📊 **Interactive Visualizations**
+- **Category Distribution**: Doughnut chart showing release types (Bug Fix, Enhancement, New Feature)
+- **Timeline Analysis**: Bar chart displaying releases over time by quarters
+- **Module Activity**: Top modules ranked by release frequency
+- **Real-time Updates**: Charts update dynamically based on filter selections
 
-## Project Structure
+### 🔍 **Advanced Filtering & Search**
+- **Category Filter**: Filter by release type (Bug Fix, Enhancement, New Feature)
+- **Quarter Filter**: Filter by specific time periods
+- **Module Filter**: Filter by specific modules
+- **Text Search**: Search across all release titles and descriptions
+- **Reset Filters**: One-click filter reset functionality
+
+### 📋 **Data Table**
+- **Full-width Display**: Responsive table with proper column spacing
+- **Pagination**: Handle large datasets with 20 records per page
+- **Hover Effects**: Visual feedback for better user experience
+- **Category Badges**: Color-coded badges for easy identification
+
+### 🎨 **Modern UI/UX**
+- **Elevance Branding**: Professional blue/white/black color scheme
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Card-based Layout**: Clean, organized interface with proper spacing
+- **Loading States**: Smooth loading animations and error handling
+
+## 🏗️ Architecture
+
+### **Backend (Flask API)**
+- **RESTful API**: Clean endpoints for data access
+- **Data Processing**: Efficient parsing of Confluence HTML data
+- **CORS Support**: Cross-origin resource sharing enabled
+- **Error Handling**: Robust error handling and logging
+
+### **Frontend (HTML/CSS/JavaScript)**
+- **Bootstrap 5**: Modern, responsive framework
+- **Chart.js**: Interactive, animated charts
+- **Font Awesome**: Professional icons throughout
+- **Custom CSS**: Elevance-branded styling
+
+### **Data Flow**
+```
+Confluence HTML → Parser → Structured Data → API → Frontend → Interactive Dashboard
+```
+
+## 🚀 Quick Start
+
+### **Prerequisites**
+- Python 3.8+
+- pip3
+
+### **Installation**
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/FNLFLSH/Confluence-Dashboard-.git
+   cd Confluence-Dashboard-
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip3 install -r requirements.txt
+   ```
+
+3. **Prepare your data**
+   - Place your Confluence HTML data in `data/report_confluence.json`
+   - Or use the included demo data for testing
+
+4. **Start the dashboard**
+   ```bash
+   python3 start_dashboard.py
+   ```
+
+5. **Access the dashboard**
+   - Open your browser to: http://localhost:8080
+   - API server runs on: http://localhost:5001
+
+## 📁 Project Structure
 
 ```
-confluence_report_generator/
-├── src/
-│   ├── parser_json.py      # Confluence HTML parser
-│   ├── utils.py           # Data transformation utilities
-│   ├── excel_writer.py    # Excel generation and styling
-│   └── __init__.py
+Confluence-Dashboard-/
 ├── data/
-│   └── report_confluence.json  # Your Confluence HTML data
-├── output/
-│   └── release_notes_output.xlsx  # Generated Excel report
-├── main.py                # Main entry point
-├── requirements.txt       # Python dependencies
-└── README.md
+│   ├── report_confluence.json    # Main data file
+│   └── demo_data.json           # Demo data for testing
+├── src/
+│   ├── parser_json.py           # HTML parsing logic
+│   ├── excel_writer.py          # Excel export functionality
+│   └── utils.py                 # Data transformation utilities
+├── static/
+│   ├── index.html               # Main dashboard page
+│   └── dashboard.js             # Frontend JavaScript
+├── api_server.py                # Flask REST API
+├── web_server.py                # Static file server
+├── start_dashboard.py           # Startup script
+├── dashboard.py                 # Alternative Dash app
+├── main.py                      # Original Excel generator
+├── requirements.txt             # Python dependencies
+└── README.md                   # This file
 ```
 
-## Installation
+## 🔧 API Endpoints
 
-1. Move to correct Directory 
-```bash
+### **Health Check**
+- `GET /api/health` - Server status
 
-cd confluence_report_generator
-```
+### **Data Endpoints**
+- `GET /api/summary` - Dashboard summary statistics
+- `GET /api/releases` - Filtered release data with pagination
+- `GET /api/filters` - Available filter options
 
-2. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+### **Chart Data**
+- `GET /api/charts/category` - Category distribution data
+- `GET /api/charts/timeline` - Timeline chart data
+- `GET /api/charts/modules` - Module activity data
+- `GET /api/frequent-changes` - Most frequently changed modules
 
-## Usage
+### **Search & Filtering**
+- `GET /api/search` - Text search functionality
 
-### Command Line Usage
+## 🎨 Customization
 
-```bash
-# Generate Excel report from Confluence HTML data
-python3 main.py --input-file data/report_confluence.json --output-file output/release_notes_output.xlsx
-```
+### **Branding**
+The dashboard uses Elevance brand colors:
+- Primary Blue: `#0033A0`
+- Secondary Blue: `#366092`
+- Accent Blue: `#002366`
+- Light Blue: `#E6F3FF`
 
-### Python Script Usage
+### **Styling**
+- Modify `static/index.html` for layout changes
+- Update CSS variables in the `:root` selector for color changes
+- Customize chart colors in `static/dashboard.js`
 
-```python
-from src.parser_json import parse_confluence_html
-from src.excel_writer import export_grouped_by_quarter
+### **Data Processing**
+- Extend `src/parser_json.py` for additional data parsing
+- Modify `src/utils.py` for custom data transformations
+- Update `api_server.py` for new API endpoints
 
-# Parse Confluence HTML data
-with open('data/report_confluence.json', 'r') as f:
-    confluence_data = f.read()
+## 🔍 Troubleshooting
 
-# Extract structured release data
-releases = parse_confluence_html(confluence_data)
+### **Common Issues**
 
-# Export to Excel
-export_grouped_by_quarter(releases, "output/release_notes_output.xlsx")
-```
+1. **Port conflicts**
+   ```bash
+   # Check what's using the ports
+   lsof -i :5001
+   lsof -i :8080
+   
+   # Kill processes if needed
+   kill -9 <PID>
+   ```
 
-## Data Format
+2. **Data loading issues**
+   - Ensure `data/report_confluence.json` exists
+   - Check file permissions
+   - Verify JSON format is correct
 
-The tool expects Confluence HTML export data in JSON format. It automatically extracts:
+3. **Dependency issues**
+   ```bash
+   # Reinstall dependencies
+   pip3 uninstall -r requirements.txt
+   pip3 install -r requirements.txt
+   ```
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `Title` | Release title | "Bug Fix: Login Issue" |
-| `Body` | Release details | "Fixed authentication problem..." |
-| `Category` | Inferred from section headers | "Bug Fix", "Enhancement", "New Feature" |
-| `Date` | Release date | "2025-04-02" |
+### **Development Mode**
+- API server runs in debug mode with auto-reload
+- Web server includes hot-reloading for static files
+- Check terminal output for detailed error messages
 
-### Supported Categories
+## 🤝 Contributing
 
-The parser automatically categorizes releases based on Confluence section headers:
-- **Bug Fix**: From "Bug Fixes" sections
-- **Enhancement**: From "Enhancements" sections  
-- **New Feature**: From "New Features" sections
-- **Other**: From any other sections
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Output Format
+## 📄 License
 
-The Excel file contains:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-1. **Main Title**: "Release Reports by Quarter"
-2. **Quarter Sections**: Each quarter (Q1-Q4) grouped by year, most recent first
-3. **Styled Headers**: White text on Elevance blue (#0033A0) background
-4. **Report Tables**: All reports for each quarter with wrapped text
-5. **📊 Summary Section**: 
-   - Quarterly counts by category
-   - Yearly totals row
+## 🙏 Acknowledgments
 
-### Quarter Organization
+- **Bootstrap 5** for responsive design framework
+- **Chart.js** for interactive visualizations
+- **Font Awesome** for professional icons
+- **Flask** for the REST API backend
 
-Reports are organized by year (descending) and quarter:
-- **2025 Q1** (all 2025 Q1 releases)
-- **2025 Q2** (all 2025 Q2 releases)
-- **2025 Q3** (all 2025 Q3 releases)
-- **2025 Q4** (all 2025 Q4 releases)
-- **2024 Q1** (all 2024 Q1 releases)
-- And so on...
+---
 
-## Quarter Mapping
-
-- **Q1**: January–March
-- **Q2**: April–June  
-- **Q3**: July–September
-- **Q4**: October–December
-
-## Styling Features
-
-- **Headers**: White text on Elevance blue (#0033A0) background
-- **Text Wrapping**: All report bodies wrap text and align to top
-- **Borders**: Clean borders around all cells
-- **Auto-sizing**: Column widths adjust to content
-- **Quarter Headers**: Bold blue text for quarter sections
-- **Summary**: Bold formatting for totals
-- **Date Display**: Clean YYYY-MM-DD format without time
-
-## Example Output
-
-```
-Release Reports by Quarter
-
-2025 Q1 (Jan–Mar)
-┌─────────┬────────────┬──────────┬────────────┐
-│ Report  │ Details    │ Category │ Date       │
-├─────────┼────────────┼──────────┼────────────┤
-│ Bug Fix │ Fixed...   │ Bug Fix  │ 2025-01-15 │
-└─────────┴────────────┴──────────┴────────────┘
-
-📊 Summary
-┌─────────────┬─────────┬─────────────┬─────────────┬───────┐
-│ Quarter     │ Bug Fix │ Enhancement │ New Feature │ Other │
-├─────────────┼─────────┼─────────────┼─────────────┼───────┤
-│ 2025 Q1     │    1    │      0      │      1      │   0   │
-│ Yearly Total│    2    │      1      │      2      │   0   │
-└─────────────┴─────────┴─────────────┴─────────────┴───────┘
-```
-
-## Processing Statistics
-
-The tool processes large datasets efficiently:
-- **1,914 releases** from your Confluence data
-- **20 quarters** across multiple years
-- **4 categories** automatically detected
-- **Fast parsing** of complex HTML structures
-
-## Dependencies
-
-- `openpyxl>=3.1.0` - Excel file creation and styling
-- `pandas>=1.5.0` - Data manipulation and quarter calculation
-
-## Development
-
-The project is organized into modular components:
-
-- **`parser_json.py`**: Handles Confluence HTML parsing using regex patterns
-- **`utils.py`**: Provides data transformation and quarter calculation utilities
-- **`excel_writer.py`**: Manages Excel generation with professional styling
-- **`main.py`**: Entry point with command-line interface
-
-## License
-
-This project is open source and available under the MIT License. 
+**Built with ❤️ for Elevance** 

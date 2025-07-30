@@ -1,0 +1,7 @@
+{
+  "body": {
+    "storage": {
+      "value": "<h3><time datetime=\"2024-01-15\">2024 Q1</time> | Bug Fixes</h3><table><tr><td>Login Issue Fix</td><td>Auth Service</td><td>JIRA-123</td><td>terraform-aws-auth</td><td>Fixed authentication problem in login flow</td><td>None</td><td>v1.2.1</td></tr></table><h3><time datetime=\"2024-02-20\">2024 Q1</time> | Enhancements</h3><table><tr><td>Performance Improvement</td><td>API Gateway</td><td>JIRA-124</td><td>terraform-aws-api</td><td>Improved response time by 30%</td><td>terraform-aws-lambda</td><td>v2.0.0</td></tr></table><h3><time datetime=\"2024-03-10\">2024 Q1</time> | New Features</h3><table><tr><td>New Module Release</td><td>Monitoring</td><td>JIRA-125</td><td>terraform-aws-monitoring</td><td>New monitoring module for cloud resources</td><td>terraform-aws-logs</td><td>v1.0.0</td></tr></table>"
+    }
+  }
+} 
